@@ -111,9 +111,8 @@ get_incidents <- function(api_key) {
     Sys.sleep(1)
   }
   
-  # Объединяем и оставляем уникальные точки для анализа
-  all_incidents_df <- bind_rows(all_incidents) %>%
-    distinct(properties_id, .keep_all = TRUE)
+  # Объединяем
+  all_incidents_df <- bind_rows(all_incidents) 
   
   if (nrow(all_incidents_df) > 0) {
     cat("\n Всего точек для анализа:", nrow(all_incidents_df), "\n")
@@ -254,7 +253,7 @@ insert_incidents <- function(data, host, user, password) {
     lon, lat, highway, lanes, maxspeed, surface, geom)
   VALUES ('%s','%s','%s','%s','%s',%f,%f,%s,%s,%s,%s,
   ST_SetSRID(ST_MakePoint(%f,%f),4326))
-  ON CONFLICT (properties_id) DO NOTHING;
+  ON CONFLICT (lon, lat) DO NOTHING;
 ",
                    row$type, row$properties_id,
                    ifelse(is.na(row$description), "No description", row$description),
