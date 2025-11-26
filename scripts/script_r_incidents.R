@@ -186,25 +186,28 @@ road_info <- function(data) {
         next
       }
       
-       # Берем первую дорогу и теги
-      elem <- data_json$elements[[1]]  
-      tags <- elem$tags                
+      # Берем первую дорогу и теги
+      elem <- data_json$elements[[1]] 
+      if(!is.list(elem)) elem <- list(tags = list())  
+
+      tags <- elem$tags
+      if(!is.list(tags)) tags <- list()  
       
-      # Берем значения тегов безопасно
+      # Берем значения тегов 
       coords[[i]] <- tibble(
-        type = coord_point$type,
-        properties_id = coord_point$properties_id,
-        description = coord_point$description,
-        city = coord_point$city,
-        lon = coord_point$lon,
-        lat = coord_point$lat,
-        event_datetime = coord_point$event_datetime,
-        geom = coord_point$geom,
-        highway = if(!is.null(tags[["highway"]])) tags[["highway"]] else NA_character_,
-        lanes = if(!is.null(tags[["lanes"]])) as.integer(tags[["lanes"]]) else NA_integer_,
-        surface = if(!is.null(tags[["surface"]])) tags[["surface"]] else NA_character_,
-        maxspeed = if(!is.null(tags[["maxspeed"]])) as.integer(tags[["maxspeed"]]) else NA_integer_
-      )
+       type = coord_point$type,
+       properties_id = coord_point$properties_id,
+       description = coord_point$description,
+       city = coord_point$city,
+       lon = coord_point$lon,
+       lat = coord_point$lat,
+       event_datetime = coord_point$event_datetime,
+       geom = coord_point$geom,
+       highway = if(!is.null(tags[["highway"]])) tags[["highway"]] else NA_character_,
+       lanes = if(!is.null(tags[["lanes"]])) as.integer(tags[["lanes"]]) else NA_integer_,
+       surface = if(!is.null(tags[["surface"]])) tags[["surface"]] else NA_character_,
+       maxspeed = if(!is.null(tags[["maxspeed"]])) as.integer(tags[["maxspeed"]]) else NA_integer_
+     )
       
       Sys.sleep(1)
     }
