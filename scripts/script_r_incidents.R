@@ -161,7 +161,7 @@ road_info <- function(data) {
       
       query <- paste0(
         '[out:json][timeout:120];',
-        'way(around:', 50, ',', data$lat[i], ',', data$lon[i], ')["highway"]; out geom tags;'
+        'way(around:', 100, ',', data$lat[i], ',', data$lon[i], ')["highway"]; out geom tags;'
       )
       
       url <- "https://overpass.kumi.systems/api/interpreter"
