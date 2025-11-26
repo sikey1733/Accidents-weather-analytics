@@ -145,8 +145,6 @@ get_incidents <- function(api_key) {
 incidents_df <- get_incidents(API_KEY)
 
 
-
-
 # Функция запроса информации о дороге исходя из координат ДТП
 road_info <- function(data) {
   
@@ -158,20 +156,63 @@ road_info <- function(data) {
     
     # Цикл проходит по каждой строке и делает запрос в OSM
     for (i in 1:nrow(data)) {
+      cat("Обрабатывается точка", i, "из", nrow(data), "\n")
       
       query <- paste0(
         '[out:json][timeout:120];',
-        'way(around:', 100, ',', data$lat[i], ',', data$lon[i], ')["highway"]; out geom tags;'
+        'way(around:', 50, ',', data$lat[i], ',', data$lon[i], ')["highway"]; out geom tags;'
       )
       
       url <- "https://overpass.kumi.systems/api/interpreter"
-      res <- POST(url, body = list(data = query), encode = "form")
+      
+      # Добавляем обработку ошибок запроса
+      res <- tryCatch({
+        POST(url, body = list(data = query), encode = "form")
+      }, error = function(e) {
+        message("Ошибка запроса для точки ", i, ": ", e$message)
+        return(NULL)
+      })
+      
+      if(is.null(res)) {
+        # Если ошибка запроса, создаем строку с NA
+        coords[[i]] <- data.frame(
+          type = data$type[i],
+          properties_id = data$properties_id[i],
+          description = data$description[i],
+          city = data$city[i],
+          lon = data$lon[i],
+          lat = data$lat[i],
+          event_datetime = data$event_datetime[i],
+          geom = data$geom[i],
+          highway = NA,
+          lanes = NA,
+          maxspeed = NA,
+          surface = NA,
+          stringsAsFactors = FALSE
+        )
+        next
+      }
+      
       text_res <- content(res, "text", encoding = "UTF-8")
       
       # Проверяем, что вернулся JSON
       if(substr(text_res, 1, 1) != "{"){
         message("Сервер вернул не JSON для точки ", i)
-        coords[[i]] <- c(data[i, ], highway = NA, lanes = NA, maxspeed = NA, surface = NA)
+        coords[[i]] <- data.frame(
+          type = data$type[i],
+          properties_id = data$properties_id[i],
+          description = data$description[i],
+          city = data$city[i],
+          lon = data$lon[i],
+          lat = data$lat[i],
+          event_datetime = data$event_datetime[i],
+          geom = data$geom[i],
+          highway = NA,
+          lanes = NA,
+          maxspeed = NA,
+          surface = NA,
+          stringsAsFactors = FALSE
+        )
         next
       }
       
@@ -181,32 +222,49 @@ road_info <- function(data) {
       # Проверяем наличие дорог
       if(length(data_json$elements) == 0){
         message("Дорога не найдена для точки ", i)
-        coords[[i]] <- c(data[i, ], highway = NA, lanes = NA, maxspeed = NA, surface = NA)
+        coords[[i]] <- data.frame(
+          type = data$type[i],
+          properties_id = data$properties_id[i],
+          description = data$description[i],
+          city = data$city[i],
+          lon = data$lon[i],
+          lat = data$lat[i],
+          event_datetime = data$event_datetime[i],
+          geom = data$geom[i],
+          highway = NA,
+          lanes = NA,
+          maxspeed = NA,
+          surface = NA,
+          stringsAsFactors = FALSE
+        )
         next
       }
       
-      # Берем первую дорогу и теги
-      elem <- data_json$elements[[1]] 
-      if(!is.list(elem)) elem <- list(tags = list())  
-
+      # Берем первую дорогу и вытаскиваем колонки тегов
+      elem <- data_json$elements[1, ]
       tags <- elem$tags
-      if(!is.list(tags)) tags <- list()  
       
-      # Берем значения тегов 
-      coords[[i]] <- tibble(
-       type = coord_point$type,
-       properties_id = coord_point$properties_id,
-       description = coord_point$description,
-       city = coord_point$city,
-       lon = coord_point$lon,
-       lat = coord_point$lat,
-       event_datetime = coord_point$event_datetime,
-       geom = coord_point$geom,
-       highway = if(!is.null(tags[["highway"]])) tags[["highway"]] else NA_character_,
-       lanes = if(!is.null(tags[["lanes"]])) as.integer(tags[["lanes"]]) else NA_integer_,
-       surface = if(!is.null(tags[["surface"]])) tags[["surface"]] else NA_character_,
-       maxspeed = if(!is.null(tags[["maxspeed"]])) as.integer(tags[["maxspeed"]]) else NA_integer_
-     )
+      # Безопасное извлечение значений тегов
+      highway_val <- ifelse(!is.null(tags$highway), tags$highway, NA)
+      lanes_val <- ifelse(!is.null(tags$lanes), as.integer(tags$lanes), NA)
+      maxspeed_val <- ifelse(!is.null(tags$maxspeed), as.integer(tags$maxspeed), NA)
+      surface_val <- ifelse(!is.null(tags$surface), tags$surface, NA)
+      
+      coords[[i]] <- data.frame(
+        type = coord_point$type,
+        properties_id = coord_point$properties_id,
+        description = coord_point$description,
+        city = coord_point$city,
+        lon = coord_point$lon,
+        lat = coord_point$lat,
+        event_datetime = coord_point$event_datetime,
+        geom = coord_point$geom,
+        highway = highway_val,
+        lanes = lanes_val,
+        surface = surface_val,
+        maxspeed = maxspeed_val,
+        stringsAsFactors = FALSE
+      )
       
       Sys.sleep(1)
     }
