@@ -131,7 +131,7 @@ ather_data <- function(host, user, password) {
         time = as.POSIXct(data$hourly$time, format = "%Y-%m-%dT%H:%M", tz = "UTC"),
         temperature = data$hourly$temperature_2m,
         relativehumidity_2m = data$hourly$relativehumidity_2m,
-        visibility = data$hourly$visibility,
+        visibility = data$hourly$visibility / 1000,
         weathercode = data$hourly$weathercode,
         precipitation = data$hourly$precipitation,
         windspeed_10m = data$hourly$windspeed_10m,
