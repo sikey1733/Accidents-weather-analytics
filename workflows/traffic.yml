@@ -1,1 +1,59 @@
+name: Run Traffic Incidents Data
 
+on:
+  schedule:
+    - cron: '*/25 * * * *'  # каждые 25 минут
+  workflow_dispatch:
+
+jobs:
+  run-r-script:
+    runs-on: ubuntu-latest
+
+    env:
+      TZ: Europe/Moscow
+      API_KEY: ${{ secrets.API_KEY }}
+      DB_HOST: ${{ secrets.DB_HOST }}
+      DB_USER: ${{ secrets.DB_USER }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      R_LIBS_USER: ~/R/Library
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up R
+      uses: r-lib/actions/setup-r@v2
+
+    - name: Cache R packages
+      uses: actions/cache@v3
+      with:
+        path: ~/R/Library
+        key: ${{ runner.os }}-r-${{ hashFiles('**/*.R', '**/*.Rmd', '**/DESCRIPTION') }}
+        restore-keys: |
+          ${{ runner.os }}-r-
+
+    - name: Install system libraries
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential pkg-config \
+          libcurl4-openssl-dev libssl-dev libxml2-dev \
+          libudunits2-dev libgdal-dev libgeos-dev libproj-dev \
+          libfontconfig1-dev libfreetype6-dev libharfbuzz-dev \
+          libfribidi-dev libpng-dev
+
+    - name: Install R packages
+      run: |
+        mkdir -p ~/R/Library
+        export R_LIBS_USER=~/R/Library
+        Rscript -e 'install.packages(c("httr","jsonlite","dplyr","tidyr","purrr","DBI","RPostgres","sf"), repos="https://cloud.r-project.org")'
+        
+    - name: Check installed packages
+      run: |
+        export R_LIBS_USER=~/R/Library
+        Rscript -e 'print(installed.packages()[, "Package"])'
+
+    - name: Run incidents script
+      run: |
+        export R_LIBS_USER=~/R/Library
+        Rscript scripts/script_r_incidents.R
