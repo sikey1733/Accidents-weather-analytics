@@ -186,10 +186,11 @@ road_info <- function(data) {
         next
       }
       
-      # Берем первую дорогу и вытаскиваем колонки тегов
-      elem <- data_json$elements[1, ]
-      tags <- elem$tags[1, ]
+       # Берем первую дорогу и теги
+      elem <- data_json$elements[[1]]  
+      tags <- elem$tags                
       
+      # Берем значения тегов безопасно
       coords[[i]] <- tibble(
         type = coord_point$type,
         properties_id = coord_point$properties_id,
@@ -199,10 +200,10 @@ road_info <- function(data) {
         lat = coord_point$lat,
         event_datetime = coord_point$event_datetime,
         geom = coord_point$geom,
-        highway = tags$highway,
-        lanes = as.integer(tags$lanes),
-        surface = tags$surface,
-        maxspeed = as.integer(tags$maxspeed)
+        highway = if(!is.null(tags[["highway"]])) tags[["highway"]] else NA_character_,
+        lanes = if(!is.null(tags[["lanes"]])) as.integer(tags[["lanes"]]) else NA_integer_,
+        surface = if(!is.null(tags[["surface"]])) tags[["surface"]] else NA_character_,
+        maxspeed = if(!is.null(tags[["maxspeed"]])) as.integer(tags[["maxspeed"]]) else NA_integer_
       )
       
       Sys.sleep(1)
